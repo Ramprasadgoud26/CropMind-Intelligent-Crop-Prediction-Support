@@ -1,0 +1,1 @@
+# CropMind-Intelligent-Crop-Prediction-Support
