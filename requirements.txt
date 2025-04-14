@@ -1,0 +1,10 @@
+Flask==2.3.3
+google-generativeai==0.3.2
+flask-cors==4.0.0
+pandas==2.2.2
+numpy==1.26.4
+joblib==1.4.0
+scikit-learn==1.4.2
+folium==0.16.0
+requests==2.31.0
+gunicorn==21.2.0
