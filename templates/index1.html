@@ -1,0 +1,733 @@
+<!-- index.html with map-based location selection -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Crop Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Add Leaflet CSS for maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css">
+    <style>
+        :root {
+            --primary-color: #3b8a3e;
+            --secondary-color: #72bb53;
+            --accent-color: #f0f7ed;
+            --dark-color: #2c3e50;
+            --light-color: #f4f4f4;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f9fafb;
+            color: var(--dark-color);
+        }
+
+        .navbar {
+            background-color: var(--primary-color);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+        }
+
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            transition: transform 0.3s ease;
+            border: none;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-header {
+            background-color: var(--secondary-color);
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: #2c7230;
+            border-color: #2c7230;
+        }
+
+        .bg-light-green {
+            background-color: var(--accent-color);
+        }
+
+        .info-box {
+            border-left: 4px solid var(--secondary-color);
+            background-color: white;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        .footer {
+            background-color: var(--dark-color);
+            color: white;
+            padding: 20px 0;
+            margin-top: 30px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .results-section {
+            display: none;
+        }
+
+        .weather-icon {
+            font-size: 2rem;
+            margin-right: 10px;
+        }
+
+        /* Custom animation for spinner */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(59, 138, 62, 0.2);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        /* Progress bar styles */
+        .progress-bar {
+            background-color: var(--secondary-color);
+        }
+
+        /* Chart containers */
+        .chart-container {
+            height: 300px;
+            margin-bottom: 20px;
+        }
+
+        /* Custom list style */
+        .custom-list {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        .custom-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .custom-list li:last-child {
+            border-bottom: none;
+        }
+
+        .custom-list li i {
+            color: var(--secondary-color);
+            margin-right: 10px;
+        }
+
+        /* Map container */
+        #map-container {
+            height: 400px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        /* Selection map container */
+        #selection-map {
+            height: 400px;
+            width: 100%;
+            border-radius: 5px;
+        }
+
+        /* Result cards */
+        .result-card {
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background-color: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .result-card h4 {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        /* Crop probability bar */
+        .prob-bar {
+            height: 10px;
+            border-radius: 5px;
+            background-color: var(--secondary-color);
+            margin-bottom: 5px;
+        }
+
+        .crop-name {
+            font-weight: 600;
+        }
+
+        /* Weather cards */
+        .weather-data {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .weather-value {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        /* Recommendation section */
+        .recommendation-content {
+            background-color: #f9fafb;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+
+        /* Location input group */
+        .location-input-group {
+            position: relative;
+        }
+
+        .location-input-group .input-group-text {
+            cursor: pointer;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+        }
+
+        .location-input-group .input-group-text:hover {
+            background-color: var(--primary-color);
+        }
+
+        /* For the location selection map modal */
+        .map-info-box {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/"><i class="fas fa-seedling me-2"></i>AgriTech Advisor</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/"><i class="fas fa-home me-1"></i> Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/train"><i class="fas fa-cogs me-1"></i> Train Models</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-4">
+        <div class="row mb-4">
+            <div class="col-lg-12">
+                <div class="card bg-light-green">
+                    <div class="card-body">
+                        <h2 class="card-title"><i class="fas fa-leaf me-2"></i>Advanced Crop Management System</h2>
+                        <p class="card-text">Get comprehensive recommendations for crop selection, production estimates, fertilizer requirements, and weather insights to optimize your agricultural yield.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Form -->
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-edit me-2"></i>Enter Your Farm Details
+                    </div>
+                    <div class="card-body">
+                        <form id="prediction-form">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <!-- Modified location input with map options -->
+                                    <label for="location" class="form-label"><i class="fas fa-map-marker-alt me-1"></i>Location</label>
+                                    <div class="input-group location-input-group">
+                                        <input type="text" class="form-control" id="location" name="location" placeholder="Enter location or use buttons to select" required>
+                                        <span class="input-group-text" id="get-current-location" title="Use current location">
+                                            <i class="fas fa-crosshairs"></i>
+                                        </span>
+                                        <span class="input-group-text" id="select-on-map" title="Select on map">
+                                            <i class="fas fa-map-marked-alt"></i>
+                                        </span>
+                                    </div>
+                                    <small class="form-text text-muted">Enter location name or use buttons to select on map or use current location</small>
+                                    <!-- Hidden fields for coordinates -->
+                                    <input type="hidden" id="latitude" name="latitude">
+                                    <input type="hidden" id="longitude" name="longitude">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="soil_type" class="form-label"><i class="fas fa-mountain me-1"></i>Soil Type</label>
+                                    <select class="form-select" id="soil_type" name="soil_type" required>
+                                        <option value="" selected disabled>Select soil type...</option>
+                                        {% for soil in soil_types %}
+                                        <option value="{{ soil }}">{{ soil }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="season" class="form-label"><i class="fas fa-cloud-sun me-1"></i>Growing Season</label>
+                                    <select class="form-select" id="season" name="season" required>
+                                        <option value="" selected disabled>Select season...</option>
+                                        <option value="Kharif">Kharif (Monsoon)</option>
+                                        <option value="Rabi">Rabi (Winter)</option>
+                                        <option value="Zaid">Zaid (Summer)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="area" class="form-label"><i class="fas fa-ruler-combined me-1"></i>Land Area (hectares)</label>
+                                    <input type="number" class="form-control" id="area" name="area" min="0.1" max="100" step="0.1" value="1.0" required>
+                                </div>
+                            </div>
+                            <div class="row mb-4">
+                                <div class="col-md-4">
+                                    <label for="nitrogen" class="form-label"><i class="fas fa-flask me-1"></i>Nitrogen (N) Content</label>
+                                    <input type="number" class="form-control" id="nitrogen" name="nitrogen" min="0" max="200" value="50" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="phosphorus" class="form-label"><i class="fas fa-flask me-1"></i>Phosphorus (P) Content</label>
+                                    <input type="number" class="form-control" id="phosphorus" name="phosphorus" min="0" max="200" value="50" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="potassium" class="form-label"><i class="fas fa-flask me-1"></i>Potassium (K) Content</label>
+                                    <input type="number" class="form-control" id="potassium" name="potassium" min="0" max="200" value="50" required>
+                                </div>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary" id="predict-button">
+                                    <i class="fas fa-search me-2"></i>Get Comprehensive Recommendations
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div class="loading" id="loading-section">
+            <div class="loading-spinner mb-3"></div>
+            <h4>Analyzing your farm data...</h4>
+            <p>Please wait while we process your information and generate comprehensive recommendations.</p>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results-section" id="results-section">
+            <div class="row mt-4">
+                <div class="col-12">
+                    <h3 class="mb-4"><i class="fas fa-chart-line me-2"></i>Comprehensive Agricultural Insights</h3>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Crop Recommendation -->
+                <div class="col-lg-6">
+                    <div class="result-card">
+                        <h4><i class="fas fa-seedling me-2"></i>Crop Recommendation</h4>
+                        <div class="alert alert-success mb-4">
+                            <h5 class="mb-0">Recommended Crop: <span id="recommended-crop">-</span></h5>
+                        </div>
+                        
+                        <h5 class="mb-3">Top Crop Matches</h5>
+                        <div id="crop-probabilities" class="mb-4"></div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="info-box">
+                                    <h6><i class="fas fa-balance-scale me-1"></i>Estimated Production</h6>
+                                    <p class="fs-5 fw-bold" id="total-production">- tons</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="info-box">
+                                    <h6><i class="fas fa-tachometer-alt me-1"></i>Yield per Hectare</h6>
+                                    <p class="fs-5 fw-bold" id="yield-per-hectare">- tons/hectare</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Weather Insights -->
+                <div class="col-lg-6">
+                    <div class="result-card">
+                        <h4><i class="fas fa-cloud-sun me-2"></i>Weather Insights</h4>
+                        
+                        <div class="weather-data">
+                            <i class="fas fa-temperature-high weather-icon text-danger"></i>
+                            <div>
+                                <p class="mb-0">Temperature</p>
+                                <span class="weather-value" id="temperature">-°C</span>
+                            </div>
+                        </div>
+                        
+                        <div class="weather-data">
+                            <i class="fas fa-tint weather-icon text-primary"></i>
+                            <div>
+                                <p class="mb-0">Humidity</p>
+                                <span class="weather-value" id="humidity">-%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="weather-data">
+                            <i class="fas fa-cloud weather-icon text-secondary"></i>
+                            <div>
+                                <p class="mb-0">Weather Condition</p>
+                                <span class="weather-value" id="weather-description">-</span>
+                            </div>
+                        </div>
+                        
+                        <div class="weather-data">
+                            <i class="fas fa-wind weather-icon text-info"></i>
+                            <div>
+                                <p class="mb-0">Wind Speed</p>
+                                <span class="weather-value" id="wind-speed">- m/s</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fertilizer Recommendation -->
+            <div class="row mt-3">
+                <div class="col-lg-12">
+                    <div class="result-card">
+                        <h4><i class="fas fa-fill-drip me-2"></i>Fertilizer Recommendation</h4>
+                        <div class="recommendation-content" id="fertilizer-recommendation">
+                            <!-- Content will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Location Map -->
+            <div class="row mt-3">
+                <div class="col-lg-12">
+                    <div class="result-card">
+                        <h4><i class="fas fa-map-marked-alt me-2"></i>Location Map</h4>
+                        <div id="map-container">
+                            <!-- Map will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Map Selection Modal -->
+    <div class="modal fade" id="mapModal" tabindex="-1" aria-labelledby="mapModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title" id="mapModalLabel"><i class="fas fa-map-marker-alt me-2"></i>Select Location on Map</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="map-info-box mb-3">
+                        <p class="mb-0"><i class="fas fa-info-circle me-1 text-primary"></i> Click anywhere on the map to select your farm location.</p>
+                    </div>
+                    <div id="selection-map"></div>
+                    <div class="mt-3" id="selected-location-info">
+                        <p class="mb-1">Selected coordinates: <span id="selected-coordinates">None selected</span></p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirm-location" disabled>Confirm Location</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><i class="fas fa-seedling me-2"></i>AgriTech Advisor &copy; 2025</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p>Advanced Crop Management System</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js"></script>
+    <!-- Add Leaflet JS for maps -->
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const predictionForm = document.getElementById('prediction-form');
+            const loadingSection = document.getElementById('loading-section');
+            const resultsSection = document.getElementById('results-section');
+            const locationInput = document.getElementById('location');
+            const latitudeInput = document.getElementById('latitude');
+            const longitudeInput = document.getElementById('longitude');
+            const selectOnMapBtn = document.getElementById('select-on-map');
+            const getCurrentLocationBtn = document.getElementById('get-current-location');
+            const confirmLocationBtn = document.getElementById('confirm-location');
+            const selectedCoordinatesSpan = document.getElementById('selected-coordinates');
+            
+            // Map variables
+            let selectionMap = null;
+            let locationMarker = null;
+            let selectedPosition = null;
+            
+            // Initialize map modal
+            const mapModal = new bootstrap.Modal(document.getElementById('mapModal'));
+            
+            // Initialize selection map when modal is shown
+            document.getElementById('mapModal').addEventListener('shown.bs.modal', function () {
+                if (!selectionMap) {
+                    // Default center (can be adjusted to a more relevant default location)
+                    const defaultCenter = [20.5937, 78.9629]; // Center of India
+                    
+                    selectionMap = L.map('selection-map').setView(defaultCenter, 5);
+                    
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    }).addTo(selectionMap);
+                    
+                    // Add click handler to map
+                    selectionMap.on('click', function(e) {
+                        selectedPosition = e.latlng;
+                        selectedCoordinatesSpan.textContent = `${selectedPosition.lat.toFixed(6)}, ${selectedPosition.lng.toFixed(6)}`;
+                        
+                        // Update or add marker
+                        if (locationMarker) {
+                            locationMarker.setLatLng(selectedPosition);
+                        } else {
+                            locationMarker = L.marker(selectedPosition).addTo(selectionMap);
+                        }
+                        
+                        // Enable confirm button
+                        confirmLocationBtn.removeAttribute('disabled');
+                    });
+                } else {
+                    // Refresh map size when modal is shown
+                    selectionMap.invalidateSize();
+                }
+            });
+            
+            // Handle "Select on Map" button click
+            selectOnMapBtn.addEventListener('click', function() {
+                mapModal.show();
+            });
+            
+            // Handle "Confirm Location" button click
+            confirmLocationBtn.addEventListener('click', function() {
+                if (selectedPosition) {
+                    // Set form values
+                    latitudeInput.value = selectedPosition.lat;
+                    longitudeInput.value = selectedPosition.lng;
+                    locationInput.value = `${selectedPosition.lat.toFixed(6)}, ${selectedPosition.lng.toFixed(6)}`;
+                    
+                    // Close modal
+                    mapModal.hide();
+                }
+            });
+            
+            // Handle "Get Current Location" button click
+            getCurrentLocationBtn.addEventListener('click', function() {
+                if (navigator.geolocation) {
+                    // Show loading indicator for location
+                    getCurrentLocationBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    
+                    navigator.geolocation.getCurrentPosition(
+                        // Success callback
+                        function(position) {
+                            const lat = position.coords.latitude;
+                            const lng = position.coords.longitude;
+                            
+                            // Set form values
+                            latitudeInput.value = lat;
+                            longitudeInput.value = lng;
+                            locationInput.value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                            
+                            // Reset button
+                            getCurrentLocationBtn.innerHTML = '<i class="fas fa-crosshairs"></i>';
+                            
+                            // Show success notification
+                            const locationDiv = locationInput.parentElement;
+                            const successMsg = document.createElement('div');
+                            successMsg.className = 'alert alert-success mt-2 py-2 small';
+                            successMsg.innerHTML = '<i class="fas fa-check-circle me-1"></i> Current location detected successfully!';
+                            
+                            // Remove any existing alerts
+                            const existingAlerts = locationDiv.parentElement.querySelectorAll('.alert');
+                            existingAlerts.forEach(alert => alert.remove());
+                            
+                            // Add success message
+                            locationDiv.parentElement.appendChild(successMsg);
+                            
+                            // Auto-remove after 3 seconds
+                            setTimeout(() => {
+                                successMsg.remove();
+                            }, 3000);
+                        },
+                        // Error callback
+                        function(error) {
+                            // Reset button
+                            getCurrentLocationBtn.innerHTML = '<i class="fas fa-crosshairs"></i>';
+                            
+                            // Show error message
+                            const locationDiv = locationInput.parentElement;
+                            const errorMsg = document.createElement('div');
+                            errorMsg.className = 'alert alert-danger mt-2 py-2 small';
+                            
+                            let errorText = "Unable to retrieve your location: ";
+                            switch (error.code) {
+                                case error.PERMISSION_DENIED:
+                                    errorText += "Location permission denied. Please check your browser settings.";
+                                    break;
+                                case error.POSITION_UNAVAILABLE:
+                                    errorText += "Location information is unavailable.";
+                                    break;
+                                case error.TIMEOUT:
+                                    errorText += "Location request timed out.";
+                                    break;
+                                default:
+                                    errorText += "An unknown error occurred.";
+                            }
+                            
+                            errorMsg.innerHTML = `<i class="fas fa-exclamation-circle me-1"></i> ${errorText}`;
+                            
+                            // Remove any existing alerts
+                            const existingAlerts = locationDiv.parentElement.querySelectorAll('.alert');
+                            existingAlerts.forEach(alert => alert.remove());
+                            
+                            // Add error message
+                            locationDiv.parentElement.appendChild(errorMsg);
+                            
+                            // Auto-remove after 5 seconds
+                            setTimeout(() => {
+                                errorMsg.remove();
+                            }, 5000);
+                        }
+                    );
+                } else {
+                    alert("Geolocation is not supported by this browser.");
+                }
+            });
+            
+            // Form submission handler
+            predictionForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Show loading indicator
+                loadingSection.style.display = 'block';
+                resultsSection.style.display = 'none';
+                
+                // Get form data
+                const formData = new FormData(predictionForm);
+                
+                // Send API request
+                fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Hide loading indicator
+                    loadingSection.style.display = 'none';
+                    
+                    if (data.status === 'success') {
+                        // Display results
+                        resultsSection.style.display = 'block';
+                        
+                        // Update crop recommendation
+                        document.getElementById('recommended-crop').textContent = data.recommended_crop;
+                        document.getElementById('total-production').textContent = data.production + ' tons';
+                        document.getElementById('yield-per-hectare').textContent = data.yield_per_hectare + ' tons/hectare';
+                        
+                        // Update weather insights
+                        document.getElementById('temperature').textContent = data.weather.temperature + '°C';
+                        document.getElementById('humidity').textContent = data.weather.humidity + '%';
+                        document.getElementById('weather-description').textContent = data.weather.description;
+                        document.getElementById('wind-speed').textContent = data.weather.wind_speed + ' m/s';
+                        
+                        // Update fertilizer recommendation using marked for Markdown rendering
+                        document.getElementById('fertilizer-recommendation').innerHTML = marked.parse(data.fertilizer_recommendation);
+                        
+                        // Update map
+                        document.getElementById('map-container').innerHTML = data.map_html;
+                        
+                        // Display crop probabilities
+                        const cropProbDiv = document.getElementById('crop-probabilities');
+                        cropProbDiv.innerHTML = '';
+                        
+                        data.crop_probabilities.forEach(item => {
+                            const prob = item.probability;
+                            const width = Math.max(5, prob); // Ensure at least 5% width for visibility
+                            
+                            const probHtml = `
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span class="crop-name">${item.crop}</span>
+                                        <span>${prob.toFixed(2)}%</span>
+                                    </div>
+                                    <div class="prob-bar" style="width: ${width}%"></div>
+                                </div>
+                            `;
+                            
+                            cropProbDiv.innerHTML += probHtml;
+                        });
+                        
+                        // Scroll to results
+                        resultsSection.scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                        // Show error
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    loadingSection.style.display = 'none';
+                    alert('Error: ' + error.message);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
