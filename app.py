@@ -24,9 +24,9 @@ app = Flask(__name__)
 CORS(app)
 
 # Configure Gemini AI with API key
-API_KEY = "AIzaSyDqgRQe8nu1lJry7NI0MgF21WSdRSOLEmw"
+API_KEY = "Enter your Gemini api key hear ...."
 genai.configure(api_key=API_KEY)
-#AIzaSyAnOuinmsV8FH4SpPX1NmPH2p5GiLK_OMU
+#AIzaSyAnO
 
 # Multi-language support dictionary for farm solution generator
 LANGUAGES = {
